@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="app">
+
+<head>
+  <title>TEST-JAVASCRIPT</title>
+  <!-- Global stylesheets -->
+  <link href="css/style.css" rel="stylesheet" type="text/css">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Angular Material style sheet -->
+  <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/angular_material/1.1.0/angular-material.min.css">
+</head>
+
+<body>
+  <div ng-controller="AppCtrl" ng-cloak>
+    <md-content class="md-padding">
+      <md-tabs class="md-accent" md-selected="data.selectedIndex" md-align-tabs="{{data.bottom ? 'bottom' : 'top'}}" style="    min-height: 600px;">
+        <md-tab ng-repeat="tab in data.tabs " id={tab.id}>
+          <md-tab-label>{{tab.name}}</md-tab-label>
+          <md-tab-body>
+            <div class="row">
+              <table class="bordered">
+                <thead>
+                  <tr>
+                    <th>Code</th>
+                    <th>Company</th>
+                    <th>Price</th>
+                    <th>Value</th>
+                    <th>Change</th>
+                    <th>%Change</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr ng-repeat="code in tab.codes">
+                    <td style="    min-height: 600px;    padding: 10px; "><span>{{code.code}}</span></td>
+                    <td>{{code.company}}</td>
+                    <td>{{code.price}}</td>
+                    <td>{{code.value}}</td>
+                    <td style="color: {{code.statusClass}};">{{code.change}}</td>
+                    <td>{{code.perchange}}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </md-tab-body>
+        </md-tab>
+    </md-content>
+  </div>
+  <!-- Angular Material requires Angular.js Libraries -->
+  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-animate.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-aria.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-messages.min.js"></script>
+  <!-- Angular Material Library -->
+  <script src="https://ajax.googleapis.com/ajax/libs/angular_material/1.1.0/angular-material.min.js"></script>
+  <!-- Your application bootstrap  -->
+  <script type="text/javascript">
+  (function() {
+    'use strict';
+    var app = angular.module('app', ['ngMaterial']);
+
+    app.config(function($mdIconProvider, $mdThemingProvider) {
+        $mdIconProvider
+          .iconSet('communication', 'img/icons/sets/communication-icons.svg')
+          .icon('favorite', 'img/icons/favorite.svg');
+        $mdThemingProvider.theme('default')
+          .primaryPalette('pink')
+          .accentPalette('blue');
+      })
+      .controller('AppCtrl', AppCtrl);
+
+    function AppCtrl($scope) {
+      $scope.data = {
+        tabs: [{ id: 1, name: "Top Gainers", codes: [] }, { id: 2, name: "Top Losers", codes: [] }]
+      }
+      $scope.next = function() {
+        $scope.data.selectedIndex = Math.min($scope.data.selectedIndex + 1, 2);
+      };
+      $scope.previous = function() {
+        $scope.data.selectedIndex = Math.max($scope.data.selectedIndex - 1, 0);
+      };
+      // fix data server 
+      $scope.dataServerFix = [];
+      for (var i = 0; i < 50; i++) {
+        $scope.dataServerFix.push({
+          code: "QuantEdge_" + i,
+          company: "Quant Edge " + i,
+          price: (Math.floor(Math.random() * 9999) + 1) / 100,
+          value: (Math.floor(Math.random() * 1000) + 1) * 1000,
+          change: '--',
+          perchange: '--',
+          statusClass: ''
+        })
+      }
+      // Sort from small to large same query from db on server
+      $scope.dataServerFix.sort(function(firstCode, secondCode) { return firstCode.price * firstCode.value - secondCode.price * secondCode.value })
+      $scope.getData = function() {
+        // fix get 20 code Losers
+        $scope.data.tabs[0].codes = $scope.dataServerFix.slice(0, 20).sort(function(firstCode, secondCode) { return secondCode.value - firstCode.value })
+        //fix get 20 code Gainers
+
+        $scope.data.tabs[1].codes = $scope.dataServerFix.slice($scope.dataServerFix.length - 21, $scope.dataServerFix.length - 1).sort(function(firstCode, secondCode) { return firstCode.value - secondCode.value })
+
+      }
+      $scope.updateData = function() {
+        //fix data change 
+        $scope.dataServerFix = $scope.dataServerFix.map(function(code) {
+
+          var volume = code.price * code.value;
+          var deltaPrice = code.price * 0.05
+          if (Math.random() > 0.5) {
+            code.price = (code.price + deltaPrice).toFixed(2)
+          } else {
+            code.price = (code.price - deltaPrice).toFixed(2)
+          }
+          code.price = parseFloat(code.price)
+          code.value = code.value + ((Math.floor(Math.random() * 3) + 1)) * 10
+          if (volume > code.price * code.value) {
+            code.statusClass = 'tomato'
+            code.change = '-' + (volume - code.price * code.value)
+            code.perchange = '-' + ((volume - code.price * code.value) / volume) * 100
+          } else {
+            if (volume == code.price * code.value) {
+              code.statusClass = '';
+              code.change = '--'
+              code.perchange = '--'
+            } else {
+              code.statusClass = '#338a7a';
+              code.change = code.price * code.value - volume
+              code.perchange = ((code.price * code.value - volume) / volume) * 100
+            }
+
+          }
+          if (typeof code.change !== 'string') {
+
+            code.change = code.change.toFixed(2)
+
+          } else {
+            code.change = parseFloat(code.change).toFixed(2)
+          }
+          if (typeof code.perchange !== 'string') {
+            code.perchange = code.perchange.toFixed(2)
+          } else {
+            code.perchange = parseFloat(code.perchange).toFixed(2)
+          }
+          return code
+        })
+        $scope.dataServerFix.sort(function(firstCode, secondCode) { return firstCode.price * firstCode.value - secondCode.price * secondCode.value })
+        $scope.$apply()
+        $scope.getData()
+      }
+      $scope.getData();
+      setInterval(function() {
+        $scope.updateData()
+      }, 5000);
+    }
+  })();
+
+  </script>
+</body>
+
+</html>
